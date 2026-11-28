@@ -7,20 +7,16 @@ const margin = 200;
 //valid intensities to calc mets when lifting
 //mets taken from https://pacompendium.com/adult-compendium/
 const liftingIntensities = 
-{
-  "light": 3,
+{"light": 3,
   "moderate": 4,
   "vigorous": 6,
-  "very high intensity": 8,
-};
+  "very high intensity": 8,};
 // same but for daily activities such as working, etc.
 const daily_activity_intensity = 
-{
-  "standing": 1.3,
+{"standing": 1.3,
   "physical labor (light)": 2,
   "physical labor (moderate)": 3,
-  "physical labor (heavy)": 4.5,
-};
+  "physical labor (heavy)": 4.5};
 
 /**
  * Basal metabolic rate (resting calories per day) using the
@@ -68,12 +64,15 @@ function met_to_cals(weightLbs, met, timeMins) {
  * @returns {number} total_cal - cals burned from walking (kcal)
  */
 function calcWalking(weightLbs, heightM, steps, grade = 0) {
+    if (grade < 0) {
+        throw new Error("Invalid grade: " + grade);
+    }
     const weightKg = weightLbs * lbs_to_kg;
     const stride = 0.413 * heightM;
     const distanceKm = (steps * stride) / 1000;
     const calories = 0.5 * weightKg * distanceKm;
-    // Approximate adjustment for incline
-    const gradeMultiplier = 1 + (grade / 100) * 3.5;
+    //inclined walking
+    const gradeMultiplier = 1 + (grade / 100) * 18;
     const total_cal = calories * gradeMultiplier;
     return total_cal;
 }
@@ -138,7 +137,8 @@ if (!(activity in daily_activity_intensity)) {
  *   fields are skipped
  * @returns {Object} { bmr, total, low, high }, all in kcal
  */
-function dayTotal(profile, day){
+function dayTotal(profile, day)
+{
     //going to create dictionaries 
     // create these later when i take user inputs, profile will be stuff
     //that stays mostly the same, day is gonna be different on the daily and full of the diff
@@ -155,25 +155,22 @@ function dayTotal(profile, day){
     let total = bmr;
 
     // if no steps then day.steps is false->skip test
-    if (day.steps) {
-    total += calcWalking(profile.weightLbs, heightM, day.steps, day.grade ?? 0);
-    }
-    // same thing for running
-    if (day.run) {
-        total += calcRunning(day.run.minutes, day.run.mph, profile.weightLbs);
-    }
+    if (day.steps) 
+        {total += calcWalking(profile.weightLbs, heightM, day.steps, day.grade ?? 0);}
+        // same thing for running
+    if (day.run) 
+        {total += calcRunning(day.run.minutes, day.run.mph, profile.weightLbs);}
     //lift
-    if (day.lift) {
-        total += calcWeightlifting(profile.weightLbs, day.lift.minutes, day.lift.intensity);
-    }
+    if (day.lift) 
+        {total += calcWeightlifting(profile.weightLbs, day.lift.minutes, day.lift.intensity);}
     // 'activities' should be a key paired with value- made of options from daily_activity_intensities
     //  ({"standing" : 100}, {physical labor (moderate): 45}, etc.)
     // "for name in object" should loop over each key
-    if (day.activities) {
-        for (const name in day.activities) {
-            total += calcDaily(profile.weightLbs, day.activities[name], name);
+    if (day.activities) 
+        {
+            for (const name in day.activities) 
+            {total += calcDaily(profile.weightLbs, day.activities[name], name);}
         }
-    }
 
     return { bmr: bmr, total: total, low: total - margin, high: total + margin };
 }
